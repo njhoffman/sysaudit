@@ -18,6 +18,7 @@ import (
 	xlog "github.com/njhoffman/sysaudit/internal/log"
 	"github.com/njhoffman/sysaudit/internal/report"
 	"github.com/njhoffman/sysaudit/internal/scan"
+	"github.com/njhoffman/sysaudit/internal/scan/logs"
 	"github.com/njhoffman/sysaudit/internal/scan/procs"
 	"github.com/njhoffman/sysaudit/internal/scan/services"
 	"github.com/njhoffman/sysaudit/internal/version"
@@ -130,6 +131,24 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 			res, err := services.Scan(ctx, services.DefaultOptions())
 			if err != nil {
 				return fmt.Errorf("services scan: %w", err)
+			}
+			results = append(results, res)
+		case "logs":
+			sources, perr := logs.ParseSources(cfg.Logs)
+			if perr != nil {
+				return fmt.Errorf("--logs: %w", perr)
+			}
+			logOpts := logs.DefaultOptions()
+			if len(sources) > 0 {
+				logOpts.Sources = sources
+			}
+			if cfg.Journal != "" {
+				logOpts.JournalArgs = cfg.Journal
+			}
+			logger.Info("scanning logs", "sources", logOpts.Sources)
+			res, err := logs.Scan(ctx, logOpts)
+			if err != nil {
+				return fmt.Errorf("logs scan: %w", err)
 			}
 			results = append(results, res)
 		default:
