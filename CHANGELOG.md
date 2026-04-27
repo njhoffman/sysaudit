@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- End-to-end integration tests for `runRoot` covering `--version`, `--help` (asserts every flag is documented), `--procs --no-claude` smoke (stdout shape), `--procs --no-claude --output FILE` (markdown file shape), `--logs=invalid_source` (validation error), `--programs=typo` (validation error), `--users --no-claude`, `--all --no-claude`, and YAML config loading from `XDG_CONFIG_HOME`.
+- `runRoot` now writes the stdout report to `cmd.OutOrStdout()` instead of `os.Stdout` directly so tests can capture output via `cmd.SetOut(buf)`. No behavior change for users — `OutOrStdout()` defaults to `os.Stdout`.
+
 - `--programs` analyzers expanded from `{sshd, nginx}` to `{sshd, nginx, postgres, apache, docker, cron}`. Each new analyzer follows the existing skipped-when-absent pattern so a host that lacks the program produces a clean "no <X> config" note rather than an error.
   - **postgres**: globs `/etc/postgresql/*/main/postgresql.conf`, parses key=value directives, and audits `listen_addresses` (warns on `*` / `0.0.0.0`), `ssl off` (warning), `password_encryption md5` (notice; deprecated since PG 10), `log_statement all` (notice). Sibling `pg_hba.conf` adds two rules: `trust` auth method (critical) and plain `host` (non-`hostssl`) on a non-loopback address (warning).
   - **apache**: detects `apache2.conf` (Debian/Ubuntu) or `httpd.conf` (RHEL/Fedora). Runs `apache2ctl|apachectl|httpd|apache2 -t` for syntax. Reads main config plus `conf.d`, `conf-enabled`, `sites-enabled`, `mods-enabled` `*.conf` files. Findings: `ServerTokens Full|OS` (notice), `ServerSignature On` (notice), `TraceEnable On` (warning), `Options Indexes` (warning), deprecated `SSLProtocol` (error), weak `SSLCipherSuite` (RC4/DES/MD5/NULL) (error).

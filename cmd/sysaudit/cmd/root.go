@@ -242,7 +242,9 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 		}
 		logger.Info("wrote report", "path", cfg.Output)
 	} else {
-		if err := report.WriteStdout(os.Stdout, rep); err != nil {
+		// cmd.OutOrStdout() defaults to os.Stdout but lets tests capture
+		// the rendered report via cmd.SetOut.
+		if err := report.WriteStdout(cmd.OutOrStdout(), rep); err != nil {
 			return fmt.Errorf("write stdout report: %w", err)
 		}
 	}
