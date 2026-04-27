@@ -7,48 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- GitHub Actions CI (`.github/workflows/ci.yml`): runs gofmt verification, `go vet`, golangci-lint (pinned to v2.11.4 to match local), `make test` (race + single run), `make build`, and `make manpage` on every push to `main` and on every pull request. Concurrency-grouped so superseded runs are canceled. README has a status badge.
+## [0.1.0] - 2026-04-27
+
+Initial release. Every spec subcommand switch is implemented end-to-end and exercised by tests.
 
 ### Added
-- `internal/scan/programs` package with sshd and nginx analyzers. Scans per-program configuration:
-  - **sshd**: parses `/etc/ssh/sshd_config` and `/etc/ssh/sshd_config.d/*.conf` (first-occurrence-wins per OpenSSH semantics, Match blocks skipped). Findings: `PermitRootLogin yes` (critical), `PermitRootLogin without-password|prohibit-password` (notice), `PasswordAuthentication yes` (warning), `PermitEmptyPasswords yes` (critical), Protocol 1 (critical), `X11Forwarding yes` (notice), `PermitTunnel` non-no (notice), `LogLevel QUIET|FATAL|ERROR` (notice), `MaxAuthTries > 6` (notice). `sshd -t -f` is run as a syntax check; the unprivileged "no hostkeys available" failure is downgraded to a note instead of a false-positive finding.
-  - **nginx**: skipped gracefully when nginx isn't on PATH. Otherwise runs `nginx -t` for syntax check and `nginx -T` for the effective config dump, then applies rules: `server_tokens on` (notice), `autoindex on` (warning), deprecated `ssl_protocols` (TLSv1/TLSv1.1/SSLv2/SSLv3) (error), and weak `ssl_ciphers` (RC4/DES/MD5/NULL) (error).
-- `--programs[=LIST]` switch now runs the real scan end-to-end. With no value it runs every supported analyzer (`sshd,nginx`); with a comma-separated value it validates the names and runs that subset. `--all` includes programs.
 
-### Added
-- `make manpage` now renders `man/sysaudit.1` from `man/sysaudit.1.md` via `go run github.com/cpuguy83/go-md2man/v2` (pure Go, no pandoc required). The Markdown source was rewritten in go-md2man's expected conventions and updated to match the current flag set; the rendered `.1` is a build artifact (gitignored).
+#### Scanners
 
-### Added
-- `--logs` sources `auth`, `kern`, and `misc` are now implemented.
-  - `auth` reads `/var/log/auth.log`; falls back to `journalctl SYSLOG_FACILITY=4 SYSLOG_FACILITY=10 -p info` when the file is empty/missing (covers `auth` and `authpriv` syslog facilities).
-  - `kern` reads `/var/log/kern.log`; falls back to `journalctl -k` (kernel transport) when the file is empty/missing.
-  - `misc` walks `/var/log/` recursively, skipping compressed archives (gz/xz/zst/bz2/lz4/zip/7z), binary `.journal` files, the `journal/` and `private/` subdirectories, files already covered by other sources (auth.log/boot.log/dmesg/kern.log), rotated tails (`*.log.1`, `*.log.42`), per-file >5 MiB (read up to the cap and flag truncation), and honors a global per-walk line cap so the walk terminates promptly.
-- Shared syslog line parser strips `MMM DD HH:MM:SS host ` (RFC 3164) and `<ISO-8601> host ` prefixes before bucketing/rule matching.
+- `internal/scan/procs`: process scanner via `gopsutil/v4`. Surfaces zombies, high CPU, high memory, and high thread counts.
+- `internal/scan/services`: systemd services on system and user buses via `systemctl --output=json` + `systemctl show`. Findings for failed, masked, load-error, missing-fragment, world-writable unit files, and high restart counts. Gracefully skips user scope when no session bus is reachable.
+- `internal/scan/users`: parses `/etc/passwd`, `/etc/group`, and (best-effort) `/etc/shadow`. Findings for extra UID 0 users, UID/GID collisions, system accounts with login shells, members of privileged groups (`sudo`/`wheel`/`root`/`adm`/`docker`/`lxd`/`kvm`/`disk`, with the trivial `root`-in-`root` case suppressed), empty/locked password hashes, and loose mode/owner on the three system files. When `/etc/shadow` is unreadable, the scan continues with an info-severity finding noting that hash checks were skipped.
+- `internal/scan/logs`: per-source dispatcher with bucketed pattern aggregation (Normalize collapses PIDs / IPs / UUIDs / hex / paths / numbers) and high-priority rules: kernel panic, OOM kill, hardware error, kernel BUG, segfault, I/O error, filesystem error, auth failure, sudo-not-in-sudoers, audit failed.
+  - `journal` runs `journalctl` with the user's `--journal` passthrough flags plus a forced `--output=json` for stable parsing.
+  - `dmesg` prefers `dmesg --kernel --ctime` and falls back to `/var/log/dmesg` when the kernel ring buffer is restricted.
+  - `boot` reads `/var/log/boot.log`; falls back to `journalctl -b -p err` when the file is missing/empty.
+  - `auth` reads `/var/log/auth.log`; falls back to `journalctl SYSLOG_FACILITY=4 SYSLOG_FACILITY=10 -p info` (auth + authpriv facilities).
+  - `kern` reads `/var/log/kern.log`; falls back to `journalctl -k` (kernel transport).
+  - `misc` walks `/var/log/` recursively, skipping compressed archives (gz/xz/zst/bz2/lz4/zip/7z), `.journal` binaries, the `journal/` and `private/` subdirectories, files already covered by other sources, rotated tails (`*.log.1`, etc.), and per-file >5 MiB (with a truncation flag). Honors a global per-walk line cap so the walk terminates promptly.
+- `internal/scan/programs`: per-program configuration audits.
+  - **sshd**: parses `/etc/ssh/sshd_config` and `/etc/ssh/sshd_config.d/*.conf` (first-occurrence-wins per OpenSSH semantics, Match blocks skipped). Findings: `PermitRootLogin yes` (critical), `PermitRootLogin without-password|prohibit-password` (notice), `PasswordAuthentication yes` (warning), `PermitEmptyPasswords yes` (critical), Protocol 1 (critical), `X11Forwarding yes` (notice), `PermitTunnel` non-no (notice), `LogLevel QUIET|FATAL|ERROR` (notice), `MaxAuthTries > 6` (notice). The `sshd -t -f` syntax check is run; the unprivileged "no hostkeys available" failure is downgraded to a note instead of a false-positive finding.
+  - **nginx**: skipped gracefully when not on PATH. Otherwise runs `nginx -t` for syntax check and `nginx -T` for the effective config dump, then matches: `server_tokens on` (notice), `autoindex on` (warning), deprecated `ssl_protocols` (TLSv1/TLSv1.1/SSLv2/SSLv3) (error), weak `ssl_ciphers` (RC4/DES/MD5/NULL) (error).
 
-### Fixed
-- The `kernel-bug` rule no longer fires on Xorg's lowercase `client bug:` debug wording (case-insensitive flag dropped; kernel oopses are always uppercase).
-- The `hardware-error` rule's `EDAC` clause now requires an `\bEDAC\b` word boundary and a same-line gap of at most 80 chars to the trigger token, so debug payloads that quote package names containing the substring "edac" don't fire it.
+#### CLI / Infrastructure
 
-### Added
-- `internal/scan/users` package: parses `/etc/passwd`, `/etc/group`, and (best-effort) `/etc/shadow`. Findings: extra UID 0 users, UID/GID collisions, system accounts with login shells, members of privileged groups (`sudo`/`wheel`/`root`/`adm`/`docker`/`lxd`/`kvm`/`disk`, with the trivial `root`-in-`root` case suppressed), empty/locked password hashes, and loose mode/owner on the three system files. When `/etc/shadow` is unreadable, the scan continues and emits an info-severity finding so the user knows hash checks were skipped.
-- `--users` and `--groups` switches now run the real scan end-to-end.
+- `cmd/sysaudit` cobra CLI implementing the full subcommand-switch surface from the spec: `--procs`, `--services`, `--users`/`--groups`, `--logs[=LIST]`, `--journal=FLAGS`, `--programs[=LIST]`, `--all`, plus global `--verbose`/`--debug`/`--quiet`/`--output`/`--version` and Claude controls (`--tokens`, `--model`, `--analysis-level`, `--claude-verbosity`, `--no-claude`).
+- `internal/log` wrapping `charmbracelet/log`, level driven by `--verbose`/`--debug`/`--quiet`.
+- `internal/config`: viper-backed loader for `~/.config/sysaudit/config.yaml` (XDG-aware); CLI flags override config values; `ANTHROPIC_API_KEY` honored as a fallback.
+- `internal/claude`: wraps `anthropic-sdk-go`. Honors token budget, analysis level, and verbosity. Renders the scan digest as a JSON-payload prompt with a level-tuned system prompt.
+- `internal/report`: stdout (colorful via `lipgloss` + Claude analysis rendered with `glamour`) and Markdown file output. Honors `NO_COLOR`.
 
-### Added
-- `internal/scan/logs` package: scans `journal`, `dmesg`, and `boot` log sources. Bucketed pattern aggregation (Normalize collapses PIDs / IPs / UUIDs / hex addresses / paths / numbers); high-priority rule findings for kernel panic, OOM kill, hardware error, kernel BUG, segfault, I/O error, filesystem error, auth failure, sudo-not-in-sudoers, audit failed. Sources `auth`, `kern`, `misc` parse but mark themselves NotRunYet inside the dispatcher.
-- `--logs[=auth,boot,journal,dmesg,kern,misc]` switch now runs the real scan end-to-end. The `--journal` flag string is passed through to `journalctl`, with `--output=json` appended for stable parsing.
-- Boot source falls back to `journalctl -b -p err` when `/var/log/boot.log` is missing or empty (common on journald-only modern Ubuntu).
-- Dmesg source prefers `dmesg --kernel --ctime` and falls back to `/var/log/dmesg` when the kernel ring buffer is restricted.
+#### Build / Distribution
 
-### Added
-- `internal/scan/services` package: scans systemd services on system and user buses via `systemctl --output=json` + `systemctl show`. Derives findings for failed, masked, load-error, missing-fragment, world-writable unit files, and high restart counts. Gracefully skips user scope when no session bus is reachable.
-- `--services` switch now runs the real scan end-to-end (no longer "not yet implemented").
+- `Makefile` targets: `build`, `lint`, `test` (with `TEST_RUNNER=go|gotestsum|gotestfmt|tparse`), `test-one`, `cover`, `manpage`, `tools`, `help`.
+- `make manpage` renders `man/sysaudit.1` from `man/sysaudit.1.md` via `go run github.com/cpuguy83/go-md2man/v2` — pure Go, no pandoc required.
+- `golangci-lint` v2 configuration with `errcheck`, `govet`, `staticcheck`, `revive`, `gocritic`, `gosec`, `unconvert`, plus `gofmt`/`goimports` formatters.
+- GitHub Actions CI workflow: gofmt verification, `go vet`, golangci-lint pinned to v2.11.4, `make test` (race + count=1), `make build`, `make manpage`. Concurrency-grouped, contents:read only.
+- GoReleaser v2 release workflow: linux amd64 + arm64 static binaries, ldflags-injected version, archives include README/CHANGELOG/manpage, checksums.txt, GitHub release with auto-derived changelog.
 
-### Added
-- Initial scaffold: Go module, Makefile with switchable test runner (go|gotestsum|gotestfmt|tparse), golangci-lint config.
-- `internal/log` package wrapping `charmbracelet/log`, level driven by `--verbose`/`--debug`/`--quiet`.
-- `internal/config` package: viper-backed loader for `~/.config/sysaudit/config.yaml`; CLI flags override config values.
-- `internal/scan/procs` process scanner via `gopsutil/v4`; emits a typed `Summary` with derived `Findings`.
-- `internal/claude` client wrapping `anthropic-sdk-go`; honors `--tokens`, `--analysis-level`, `--claude-verbosity`.
-- `internal/report` renderers: colorful stdout via `lipgloss` and markdown to file.
-- `cmd/sysaudit` cobra CLI: `--procs` runs the full pipeline; other subcommands (`--services`, `--users`/`--groups`, `--logs`, `--all`, `--programs`) accept flags but exit with "not yet implemented".
+#### Documentation
+
+- `README.md`: overview, quickstart, scanner table, configuration, dev cheat sheet, doc pointers.
+- `man/sysaudit.1.md`: full manpage source with NAME/SYNOPSIS/DESCRIPTION/OPTIONS/CONFIGURATION/EXAMPLES/EXIT STATUS/FILES/ENVIRONMENT/SEE ALSO sections.
+- `CLAUDE.md`: spec + package layout + conventions for Claude Code instances working in this repo.

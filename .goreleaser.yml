@@ -1,0 +1,72 @@
+version: 2
+
+project_name: sysaudit
+
+before:
+  hooks:
+    - go mod tidy
+    # Render the manpage so it can be packaged into the archive. Uses the
+    # same go-md2man path as `make manpage`.
+    - go run github.com/cpuguy83/go-md2man/v2@v2.0.4 -in man/sysaudit.1.md -out man/sysaudit.1
+
+builds:
+  - id: sysaudit
+    main: ./cmd/sysaudit
+    binary: sysaudit
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/njhoffman/sysaudit/internal/version.Version={{ .Version }}
+      - -X github.com/njhoffman/sysaudit/internal/version.Commit={{ .Commit }}
+      - -X github.com/njhoffman/sysaudit/internal/version.Date={{ .Date }}
+
+archives:
+  - id: sysaudit
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - README.md
+      - CHANGELOG.md
+      - LICENSE*
+      - man/sysaudit.1
+      - man/sysaudit.1.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^ci:"
+      - "merge conflict"
+
+release:
+  prerelease: auto
+  mode: replace
+  header: |
+    ## sysaudit {{ .Tag }}
+
+    Linux audit tool that scans processes, services, users/groups, logs, and per-program configuration; runs the digest through Claude for analysis; and writes a colorful or Markdown report.
+
+    See [CHANGELOG.md](https://github.com/njhoffman/sysaudit/blob/{{ .Tag }}/CHANGELOG.md) for full notes.
