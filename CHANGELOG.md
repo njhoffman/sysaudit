@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `make manpage` now renders `man/sysaudit.1` from `man/sysaudit.1.md` via `go run github.com/cpuguy83/go-md2man/v2` (pure Go, no pandoc required). The Markdown source was rewritten in go-md2man's expected conventions and updated to match the current flag set; the rendered `.1` is a build artifact (gitignored).
+
+### Added
 - `--logs` sources `auth`, `kern`, and `misc` are now implemented.
   - `auth` reads `/var/log/auth.log`; falls back to `journalctl SYSLOG_FACILITY=4 SYSLOG_FACILITY=10 -p info` when the file is empty/missing (covers `auth` and `authpriv` syslog facilities).
   - `kern` reads `/var/log/kern.log`; falls back to `journalctl -k` (kernel transport) when the file is empty/missing.

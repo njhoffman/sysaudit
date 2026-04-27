@@ -59,10 +59,16 @@ cover:
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "coverage report: coverage.html"
 
-manpage:
-	@mkdir -p $(BIN_DIR)
-	@echo "manpage generation is wired to the binary's hidden 'gen-manpage' command (added when cmd is implemented)"
-	@echo "intended: $(BIN_DIR)/$(BINARY) gen-manpage > man/sysaudit.1"
+# Pinned go-md2man version. Bump deliberately; reproducible builds matter
+# more here than chasing latest.
+MD2MAN_VERSION ?= v2.0.4
+
+manpage: man/sysaudit.1
+
+man/sysaudit.1: man/sysaudit.1.md
+	go run github.com/cpuguy83/go-md2man/v2@$(MD2MAN_VERSION) \
+		-in man/sysaudit.1.md -out man/sysaudit.1
+	@echo "wrote man/sysaudit.1 (preview: man -l man/sysaudit.1)"
 
 tools:
 	@echo "Required tools (install with: go install ...):"
