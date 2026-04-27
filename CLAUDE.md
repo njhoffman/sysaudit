@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-The repository is pre-implementation: no Go code, `go.mod`, `Makefile`, manpage, or `CHANGELOG.md` exists yet. Everything below the **Specification** section describes *intended* commands and architecture derived from the spec, not facts on disk. Update those sections to reflect reality as code lands. The spec itself is the source of truth for what to build.
+Initial scaffold landed: cobra+viper CLI, charmbracelet/log logging, gopsutil-based process scanner, anthropic-sdk-go client, lipgloss/glamour reporters. `--procs` runs the full pipeline end-to-end. Other subcommand switches (`--services`, `--users`/`--groups`, `--logs`, `--all`, `--programs`) parse but emit "not yet implemented" warnings and are skipped. The **Specification** section below remains the source of truth for what still needs to be built.
 
 ## Overview
 
@@ -41,35 +41,36 @@ The repository is pre-implementation: no Go code, `go.mod`, `Makefile`, manpage,
 - `--all` — scan everything above.
 - No subcommand specified — scan procs and services.
 
-## Intended commands (not yet implemented)
+## Commands
 
-These targets are derived from the spec. They do not exist on disk yet; treat them as the contract to honor when scaffolding the `Makefile`.
+- `make build` — build `bin/sysaudit`.
+- `make lint` — run `golangci-lint`.
+- `make test` — run unit tests with `-race -count=1`. Switch output renderer with `TEST_RUNNER`: `make test TEST_RUNNER=gotestsum|gotestfmt|tparse` (default `go`).
+- `make test-one PKG_=./internal/config NAME=TestLoad_FromYAML` — run a single test.
+- `make cover` — write `coverage.html`.
+- `make manpage` — regenerate the manpage *(stub: hooks into a hidden `gen-manpage` cobra command, not yet wired)*.
+- Pre-commit gate: `make lint && make test` must pass.
 
-- `make build` — build the `sysaudit` binary.
-- `make lint` — run the Go linter (e.g. `golangci-lint run`).
-- `make test` — run unit and integration tests. Honor a variable to switch the runner between `gotestsum`, `gotestfmt`, and `tparse` (e.g. `make test TEST_RUNNER=tparse`).
-- `make manpage` — regenerate the manpage.
-- Single test (canonical Go form): `go test ./path/to/pkg -run TestName -v`. A `make test-one PKG=... NAME=...` wrapper may be added later.
-- Pre-commit gate: `make lint && make test` must pass before any commit (per spec).
-
-## Intended architecture (not yet implemented)
-
-A planned package layout derived from the subcommand surface. Use this as the starting shape when scaffolding; deviate when the code reveals a better split.
+## Architecture
 
 ```
-cmd/sysaudit/           # CLI entrypoint, flag parsing, subcommand dispatch
-internal/scan/
-  procs/                # process scanner
-  services/             # systemd unit scanner (system + user)
-  users/                # users & groups scanner
-  logs/                 # log scanners: auth, boot, journal, dmesg, kern, misc
-internal/claude/        # Claude API client; token/verbosity/analysis-level controls
-internal/report/        # stdout (colorful) and markdown renderers
-internal/config/        # ~/.config/sysaudit/config.yaml loading + flag merge
-internal/log/           # charmbracelet/log wiring (verbose/debug/quiet)
+cmd/sysaudit/           # main entrypoint
+cmd/sysaudit/cmd/       # cobra root: flag wiring, scan dispatch, render
+internal/scan/          # shared types: Result, Finding, Severity
+internal/scan/procs/    # gopsutil-backed process scanner (implemented)
+internal/scan/services/ # not yet implemented
+internal/scan/users/    # not yet implemented
+internal/scan/logs/     # not yet implemented
+internal/claude/        # anthropic-sdk-go wrapper; token/level/verbosity controls
+internal/report/        # WriteStdout (lipgloss + glamour) and WriteMarkdown
+internal/config/        # viper-backed loader; XDG_CONFIG_HOME aware
+internal/log/           # charmbracelet/log wrapper, level from CLI flags
+internal/version/       # ldflags-injected build info
 ```
 
-Intended data flow: `scan/* → summary struct → claude/* (analysis) → report/* (stdout | markdown)`.
+Data flow: `cmd dispatches → scan/* produces *scan.Result → claude/* analyzes → report/* renders to stdout (colorful) or file (markdown)`.
+
+Subcommand selection (in `cmd/sysaudit/cmd/root.go`): `--all` → everything; otherwise the union of explicit switches; otherwise the spec default `procs + services`. Unimplemented kinds are logged and skipped, not fatal — as long as at least one implemented scan ran.
 
 ## Conventions
 
