@@ -20,6 +20,7 @@ import (
 	"github.com/njhoffman/sysaudit/internal/scan"
 	"github.com/njhoffman/sysaudit/internal/scan/logs"
 	"github.com/njhoffman/sysaudit/internal/scan/procs"
+	"github.com/njhoffman/sysaudit/internal/scan/programs"
 	"github.com/njhoffman/sysaudit/internal/scan/services"
 	"github.com/njhoffman/sysaudit/internal/scan/users"
 	"github.com/njhoffman/sysaudit/internal/version"
@@ -87,6 +88,10 @@ func newRootCmd() *cobra.Command {
 	pf.BoolVarP(&gf.all, "all", "a", false, "Scan everything")
 
 	root.PersistentFlags().Lookup("logs").NoOptDefVal = strings.Join(config.DefaultLogs, ",")
+	// --programs without a value means "every supported program". Avoids
+	// the trap where `sysaudit --programs --no-claude` consumes
+	// --no-claude as the programs value.
+	root.PersistentFlags().Lookup("programs").NoOptDefVal = "sshd,nginx"
 
 	return root
 }
@@ -139,6 +144,21 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 			res, err := users.Scan(ctx, users.DefaultOptions())
 			if err != nil {
 				return fmt.Errorf("users scan: %w", err)
+			}
+			results = append(results, res)
+		case "programs":
+			progs, perr := programs.ParsePrograms(gf.programs)
+			if perr != nil {
+				return fmt.Errorf("--programs: %w", perr)
+			}
+			progOpts := programs.DefaultOptions()
+			if len(progs) > 0 {
+				progOpts.Programs = progs
+			}
+			logger.Info("scanning programs", "programs", progOpts.Programs)
+			res, err := programs.Scan(ctx, progOpts)
+			if err != nil {
+				return fmt.Errorf("programs scan: %w", err)
 			}
 			results = append(results, res)
 		case "logs":

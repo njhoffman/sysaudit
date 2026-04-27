@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Implemented scanners: `--procs` (gopsutil), `--services` (systemctl JSON + show), `--logs` for all six sources (`auth`/`boot`/`journal`/`dmesg`/`kern`/`misc`), and `--users`/`--groups` (parses `/etc/passwd`/`group`/`shadow`). Stubs at the cmd level: `--programs`. `--all` runs every implemented scan; `--programs` is the only remaining "not yet implemented" branch. The **Specification** section below remains the source of truth for what still needs to be built.
+Every subcommand switch from the spec is now implemented end-to-end: `--procs` (gopsutil), `--services` (systemctl JSON + show), `--logs` for all six sources (`auth`/`boot`/`journal`/`dmesg`/`kern`/`misc`), `--users`/`--groups` (parses `/etc/passwd`/`group`/`shadow`), and `--programs` (sshd + nginx analyzers; gracefully skips when the program isn't installed). `--all` exercises every scanner. The **Specification** section below remains the source of truth.
 
 ## Overview
 
@@ -61,6 +61,7 @@ internal/scan/procs/    # gopsutil-backed process scanner (implemented)
 internal/scan/services/ # systemctl JSON + show (implemented)
 internal/scan/users/    # /etc/passwd, /etc/group, /etc/shadow (implemented)
 internal/scan/logs/     # all six sources implemented (auth/boot/journal/dmesg/kern/misc)
+internal/scan/programs/ # per-program analyzers (sshd, nginx)
 internal/claude/        # anthropic-sdk-go wrapper; token/level/verbosity controls
 internal/report/        # WriteStdout (lipgloss + glamour) and WriteMarkdown
 internal/config/        # viper-backed loader; XDG_CONFIG_HOME aware

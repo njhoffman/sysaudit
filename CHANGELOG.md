@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `internal/scan/programs` package with sshd and nginx analyzers. Scans per-program configuration:
+  - **sshd**: parses `/etc/ssh/sshd_config` and `/etc/ssh/sshd_config.d/*.conf` (first-occurrence-wins per OpenSSH semantics, Match blocks skipped). Findings: `PermitRootLogin yes` (critical), `PermitRootLogin without-password|prohibit-password` (notice), `PasswordAuthentication yes` (warning), `PermitEmptyPasswords yes` (critical), Protocol 1 (critical), `X11Forwarding yes` (notice), `PermitTunnel` non-no (notice), `LogLevel QUIET|FATAL|ERROR` (notice), `MaxAuthTries > 6` (notice). `sshd -t -f` is run as a syntax check; the unprivileged "no hostkeys available" failure is downgraded to a note instead of a false-positive finding.
+  - **nginx**: skipped gracefully when nginx isn't on PATH. Otherwise runs `nginx -t` for syntax check and `nginx -T` for the effective config dump, then applies rules: `server_tokens on` (notice), `autoindex on` (warning), deprecated `ssl_protocols` (TLSv1/TLSv1.1/SSLv2/SSLv3) (error), and weak `ssl_ciphers` (RC4/DES/MD5/NULL) (error).
+- `--programs[=LIST]` switch now runs the real scan end-to-end. With no value it runs every supported analyzer (`sshd,nginx`); with a comma-separated value it validates the names and runs that subset. `--all` includes programs.
+
+### Added
 - `make manpage` now renders `man/sysaudit.1` from `man/sysaudit.1.md` via `go run github.com/cpuguy83/go-md2man/v2` (pure Go, no pandoc required). The Markdown source was rewritten in go-md2man's expected conventions and updated to match the current flag set; the rendered `.1` is a build artifact (gitignored).
 
 ### Added
