@@ -72,8 +72,8 @@ If no subcommand switch is given, **sysaudit** scans processes and services.
 **\-j**, **\-\-journal**=_FLAGS_
   Pass-through flag string for **journalctl** when the _journal_ source runs. Default: **-p 4 -b -n 500 \-\-no-pager**. Whitespace-split; quoted values with spaces are not supported.
 
-**\-P**, **\-\-programs**=_LIST_
-  Program-specific configuration audit (e.g. _sshd_, _nginx_).
+**\-P**, **\-\-programs**[=_LIST_]
+  Program-specific configuration audit. _LIST_ is a comma-separated subset of _sshd_, _nginx_, _postgres_, _apache_, _docker_, _cron_. With no value, runs every analyzer; each gracefully skips when the program isn't installed or has no config on this host.
 
 **\-a**, **\-\-all**
   Scan everything implemented above. Logs are scanned across all six sources. Stub kinds emit "not yet implemented" warnings but do not fail the run.

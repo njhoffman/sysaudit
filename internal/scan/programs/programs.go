@@ -15,12 +15,19 @@ import (
 type Program string
 
 const (
-	ProgramSSHD  Program = "sshd"
-	ProgramNginx Program = "nginx"
+	ProgramSSHD     Program = "sshd"
+	ProgramNginx    Program = "nginx"
+	ProgramPostgres Program = "postgres"
+	ProgramApache   Program = "apache"
+	ProgramDocker   Program = "docker"
+	ProgramCron     Program = "cron"
 )
 
 // AllPrograms is the stable enumeration of supported programs.
-var AllPrograms = []Program{ProgramSSHD, ProgramNginx}
+var AllPrograms = []Program{
+	ProgramSSHD, ProgramNginx, ProgramPostgres,
+	ProgramApache, ProgramDocker, ProgramCron,
+}
 
 // ProgramResult is the per-program contribution to a programs scan.
 type ProgramResult struct {
@@ -38,7 +45,7 @@ type Options struct {
 }
 
 func DefaultOptions() Options {
-	return Options{Programs: []Program{ProgramSSHD, ProgramNginx}}
+	return Options{Programs: AllPrograms}
 }
 
 // analyzer is the per-program contract.
@@ -46,8 +53,12 @@ type analyzer func(ctx context.Context) ProgramResult
 
 // analyzers maps each Program to its implementation.
 var analyzers = map[Program]analyzer{
-	ProgramSSHD:  analyzeSSHD,
-	ProgramNginx: analyzeNginx,
+	ProgramSSHD:     analyzeSSHD,
+	ProgramNginx:    analyzeNginx,
+	ProgramPostgres: analyzePostgres,
+	ProgramApache:   analyzeApache,
+	ProgramDocker:   analyzeDocker,
+	ProgramCron:     analyzeCron,
 }
 
 // Scan runs every requested analyzer and returns a single scan.Result. A

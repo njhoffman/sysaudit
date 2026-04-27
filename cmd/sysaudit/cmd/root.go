@@ -91,7 +91,11 @@ func newRootCmd() *cobra.Command {
 	// --programs without a value means "every supported program". Avoids
 	// the trap where `sysaudit --programs --no-claude` consumes
 	// --no-claude as the programs value.
-	root.PersistentFlags().Lookup("programs").NoOptDefVal = "sshd,nginx"
+	progNames := make([]string, len(programs.AllPrograms))
+	for i, p := range programs.AllPrograms {
+		progNames[i] = string(p)
+	}
+	root.PersistentFlags().Lookup("programs").NoOptDefVal = strings.Join(progNames, ",")
 
 	return root
 }

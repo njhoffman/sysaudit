@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `--programs` analyzers expanded from `{sshd, nginx}` to `{sshd, nginx, postgres, apache, docker, cron}`. Each new analyzer follows the existing skipped-when-absent pattern so a host that lacks the program produces a clean "no <X> config" note rather than an error.
+  - **postgres**: globs `/etc/postgresql/*/main/postgresql.conf`, parses key=value directives, and audits `listen_addresses` (warns on `*` / `0.0.0.0`), `ssl off` (warning), `password_encryption md5` (notice; deprecated since PG 10), `log_statement all` (notice). Sibling `pg_hba.conf` adds two rules: `trust` auth method (critical) and plain `host` (non-`hostssl`) on a non-loopback address (warning).
+  - **apache**: detects `apache2.conf` (Debian/Ubuntu) or `httpd.conf` (RHEL/Fedora). Runs `apache2ctl|apachectl|httpd|apache2 -t` for syntax. Reads main config plus `conf.d`, `conf-enabled`, `sites-enabled`, `mods-enabled` `*.conf` files. Findings: `ServerTokens Full|OS` (notice), `ServerSignature On` (notice), `TraceEnable On` (warning), `Options Indexes` (warning), deprecated `SSLProtocol` (error), weak `SSLCipherSuite` (RC4/DES/MD5/NULL) (error).
+  - **docker**: parses `/etc/docker/daemon.json`. Findings: `tcp://` host without `tlsverify=true` (critical — anyone reaching the socket has root on the host), explicit `icc=true` (notice), `live-restore=false` (notice), `no-new-privileges=false` (notice), `json-file` log driver without `max-size` log-opt (notice — disk-fill vector). Parse failures themselves surface as an error finding so the user knows the engine is reading invalid JSON.
+  - **cron**: walks `/etc/crontab`, `/etc/anacrontab`, and `/etc/cron.d/*`. Findings: world-writable cron file (critical), group-writable (warning), insecure `http://` curl/wget/fetch fetch in a job command (warning).
+- `--programs` (no value) now defaults to every supported analyzer (was `sshd,nginx`).
+
 ## [0.1.0] - 2026-04-27
 
 Initial release. Every spec subcommand switch is implemented end-to-end and exercised by tests.

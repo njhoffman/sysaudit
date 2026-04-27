@@ -37,7 +37,7 @@ export ANTHROPIC_API_KEY=sk-...
 | `--users` / `-u`      | `/etc/passwd`, `/etc/group`, `/etc/shadow`          | extra UID 0, UID/GID collisions, system accounts with login shells, privileged-group membership, weak hashes, loose mode/owner |
 | `--groups` / `-g`     | same scanner as `--users`                           | (alias)                                                                                                |
 | `--logs` / `-L`       | `journalctl`, `dmesg`, `/var/log/{auth,boot,kern}.log`, `/var/log/*` | bucketed pattern aggregation; rule findings for kernel panic, OOM kill, hardware error, kernel BUG, segfault, I/O error, FS error, auth failure |
-| `--programs` / `-P`   | `sshd` config + drop-ins; `nginx -t`/`-T`           | hardening checklist (PermitRootLogin, PasswordAuthentication, etc.); deprecated TLS / weak ciphers     |
+| `--programs` / `-P`   | per-program audits (`sshd`, `nginx`, `postgres`, `apache`, `docker`, `cron`) | hardening checklists per program; auto-skips when not installed                          |
 | `--all` / `-a`        | every scanner above; `--logs` covers all 6 sources  |                                                                                                        |
 
 `sysaudit` falls back gracefully when something isn't available: shadow not readable as a regular user, `/var/log/auth.log` empty on a journald-only host, kernel ring buffer restricted, nginx not installed, etc. Each falls back to the next-best source or surfaces a self-explanatory note rather than aborting the scan.
