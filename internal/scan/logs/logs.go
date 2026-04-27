@@ -91,6 +91,9 @@ var scanners = map[Source]scanner{
 	SourceJournal: scanJournal,
 	SourceDmesg:   scanDmesg,
 	SourceBoot:    scanBoot,
+	SourceAuth:    scanAuth,
+	SourceKern:    scanKern,
+	SourceMisc:    scanMisc,
 }
 
 // Scan runs every requested source and produces a single scan.Result that

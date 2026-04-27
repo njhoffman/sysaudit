@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `--logs` sources `auth`, `kern`, and `misc` are now implemented.
+  - `auth` reads `/var/log/auth.log`; falls back to `journalctl SYSLOG_FACILITY=4 SYSLOG_FACILITY=10 -p info` when the file is empty/missing (covers `auth` and `authpriv` syslog facilities).
+  - `kern` reads `/var/log/kern.log`; falls back to `journalctl -k` (kernel transport) when the file is empty/missing.
+  - `misc` walks `/var/log/` recursively, skipping compressed archives (gz/xz/zst/bz2/lz4/zip/7z), binary `.journal` files, the `journal/` and `private/` subdirectories, files already covered by other sources (auth.log/boot.log/dmesg/kern.log), rotated tails (`*.log.1`, `*.log.42`), per-file >5 MiB (read up to the cap and flag truncation), and honors a global per-walk line cap so the walk terminates promptly.
+- Shared syslog line parser strips `MMM DD HH:MM:SS host ` (RFC 3164) and `<ISO-8601> host ` prefixes before bucketing/rule matching.
+
+### Fixed
+- The `kernel-bug` rule no longer fires on Xorg's lowercase `client bug:` debug wording (case-insensitive flag dropped; kernel oopses are always uppercase).
+- The `hardware-error` rule's `EDAC` clause now requires an `\bEDAC\b` word boundary and a same-line gap of at most 80 chars to the trigger token, so debug payloads that quote package names containing the substring "edac" don't fire it.
+
+### Added
 - `internal/scan/users` package: parses `/etc/passwd`, `/etc/group`, and (best-effort) `/etc/shadow`. Findings: extra UID 0 users, UID/GID collisions, system accounts with login shells, members of privileged groups (`sudo`/`wheel`/`root`/`adm`/`docker`/`lxd`/`kvm`/`disk`, with the trivial `root`-in-`root` case suppressed), empty/locked password hashes, and loose mode/owner on the three system files. When `/etc/shadow` is unreadable, the scan continues and emits an info-severity finding so the user knows hash checks were skipped.
 - `--users` and `--groups` switches now run the real scan end-to-end.
 

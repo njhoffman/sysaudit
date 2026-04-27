@@ -44,18 +44,19 @@ func TestParseSources_NilOnEmpty(t *testing.T) {
 	}
 }
 
-func TestScan_StubsUnimplementedSources(t *testing.T) {
-	// Asking only for sources without scanners produces NotRunYet entries
-	// rather than crashing or silently dropping them.
-	res, err := Scan(context.Background(), Options{
-		Sources: []Source{SourceAuth, SourceKern, SourceMisc},
-	})
+func TestScan_UnknownSource_MarkedNotRunYet(t *testing.T) {
+	// Sources that are validated by ParseSources can never reach Scan
+	// unregistered, but the dispatcher still has a NotRunYet code path
+	// for forward compatibility. Inject a fake unregistered source to
+	// exercise it.
+	const fake Source = "_unregistered_for_test"
+	res, err := Scan(context.Background(), Options{Sources: []Source{fake}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	notRun, _ := res.Summary["sources_not_run_yet"].([]string)
-	if len(notRun) != 3 {
-		t.Errorf("expected 3 stubbed sources, got %v", notRun)
+	if len(notRun) != 1 || notRun[0] != string(fake) {
+		t.Errorf("expected the fake source in NotRunYet, got %v", notRun)
 	}
 }
 

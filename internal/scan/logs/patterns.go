@@ -105,15 +105,19 @@ var Rules = []Rule{
 	},
 	{
 		Name: "hardware-error",
-		// Match real hardware events, not init banners. EDAC always logs
-		// "EDAC MC: Ver: 3.0.0" at boot which is not an error.
-		Pattern:  regexp.MustCompile(`(?i)Hardware Error|\bMCE:\s|EDAC.*\b(?:UE|CE|error)\b`),
+		// Real hardware events: literal MCE/EDAC tokens with adjacent
+		// error markers. Case-sensitive on purpose: "edac" inside a
+		// debug payload (e.g. dist-upgrade logs that quote package
+		// names) was triggering the case-insensitive form.
+		Pattern:  regexp.MustCompile(`Hardware Error\b|\bMCE:\s|\bEDAC\b[^\n]{0,80}\b(?:UE|CE|error)\b`),
 		Severity: scan.SeverityError,
 		Subject:  "hardware error reported",
 	},
 	{
-		Name:     "kernel-bug",
-		Pattern:  regexp.MustCompile(`(?i)\bBUG:|kernel BUG at|general protection fault`),
+		Name: "kernel-bug",
+		// Kernel oops-style BUG markers are always uppercase. Keeping
+		// the (?i) flag matched Xorg's "client bug:" debug wording.
+		Pattern:  regexp.MustCompile(`\bBUG:|kernel BUG at|general protection fault`),
 		Severity: scan.SeverityError,
 		Subject:  "kernel bug or fault",
 	},
