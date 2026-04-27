@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `internal/scan/users` package: parses `/etc/passwd`, `/etc/group`, and (best-effort) `/etc/shadow`. Findings: extra UID 0 users, UID/GID collisions, system accounts with login shells, members of privileged groups (`sudo`/`wheel`/`root`/`adm`/`docker`/`lxd`/`kvm`/`disk`, with the trivial `root`-in-`root` case suppressed), empty/locked password hashes, and loose mode/owner on the three system files. When `/etc/shadow` is unreadable, the scan continues and emits an info-severity finding so the user knows hash checks were skipped.
+- `--users` and `--groups` switches now run the real scan end-to-end.
+
+### Added
 - `internal/scan/logs` package: scans `journal`, `dmesg`, and `boot` log sources. Bucketed pattern aggregation (Normalize collapses PIDs / IPs / UUIDs / hex addresses / paths / numbers); high-priority rule findings for kernel panic, OOM kill, hardware error, kernel BUG, segfault, I/O error, filesystem error, auth failure, sudo-not-in-sudoers, audit failed. Sources `auth`, `kern`, `misc` parse but mark themselves NotRunYet inside the dispatcher.
 - `--logs[=auth,boot,journal,dmesg,kern,misc]` switch now runs the real scan end-to-end. The `--journal` flag string is passed through to `journalctl`, with `--output=json` appended for stable parsing.
 - Boot source falls back to `journalctl -b -p err` when `/var/log/boot.log` is missing or empty (common on journald-only modern Ubuntu).

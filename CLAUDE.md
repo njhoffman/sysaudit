@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Implemented scanners: `--procs` (gopsutil), `--services` (systemctl JSON + show), `--logs` for sources `journal`/`dmesg`/`boot`. Sources `auth`/`kern`/`misc` parse but are marked NotRunYet inside the logs dispatcher. Stubs at the cmd level: `--users`/`--groups`, `--programs`. `--all` runs every implemented scan and lists the rest as skipped. The **Specification** section below remains the source of truth for what still needs to be built.
+Implemented scanners: `--procs` (gopsutil), `--services` (systemctl JSON + show), `--logs` for sources `journal`/`dmesg`/`boot`, and `--users`/`--groups` (parses `/etc/passwd`/`group`/`shadow`). Sources `auth`/`kern`/`misc` parse but are marked NotRunYet inside the logs dispatcher. Stubs at the cmd level: `--programs`. `--all` runs every implemented scan and lists the rest as skipped. The **Specification** section below remains the source of truth for what still needs to be built.
 
 ## Overview
 
@@ -59,7 +59,7 @@ cmd/sysaudit/cmd/       # cobra root: flag wiring, scan dispatch, render
 internal/scan/          # shared types: Result, Finding, Severity
 internal/scan/procs/    # gopsutil-backed process scanner (implemented)
 internal/scan/services/ # systemctl JSON + show (implemented)
-internal/scan/users/    # not yet implemented
+internal/scan/users/    # /etc/passwd, /etc/group, /etc/shadow (implemented)
 internal/scan/logs/     # journal/dmesg/boot implemented; auth/kern/misc stubbed inside the dispatcher
 internal/claude/        # anthropic-sdk-go wrapper; token/level/verbosity controls
 internal/report/        # WriteStdout (lipgloss + glamour) and WriteMarkdown

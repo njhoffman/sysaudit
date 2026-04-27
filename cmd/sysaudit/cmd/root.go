@@ -21,6 +21,7 @@ import (
 	"github.com/njhoffman/sysaudit/internal/scan/logs"
 	"github.com/njhoffman/sysaudit/internal/scan/procs"
 	"github.com/njhoffman/sysaudit/internal/scan/services"
+	"github.com/njhoffman/sysaudit/internal/scan/users"
 	"github.com/njhoffman/sysaudit/internal/version"
 )
 
@@ -131,6 +132,13 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 			res, err := services.Scan(ctx, services.DefaultOptions())
 			if err != nil {
 				return fmt.Errorf("services scan: %w", err)
+			}
+			results = append(results, res)
+		case "users":
+			logger.Info("scanning users and groups")
+			res, err := users.Scan(ctx, users.DefaultOptions())
+			if err != nil {
+				return fmt.Errorf("users scan: %w", err)
 			}
 			results = append(results, res)
 		case "logs":
