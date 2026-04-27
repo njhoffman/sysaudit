@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `internal/scan/services` package: scans systemd services on system and user buses via `systemctl --output=json` + `systemctl show`. Derives findings for failed, masked, load-error, missing-fragment, world-writable unit files, and high restart counts. Gracefully skips user scope when no session bus is reachable.
+- `--services` switch now runs the real scan end-to-end (no longer "not yet implemented").
+
+### Added
 - Initial scaffold: Go module, Makefile with switchable test runner (go|gotestsum|gotestfmt|tparse), golangci-lint config.
 - `internal/log` package wrapping `charmbracelet/log`, level driven by `--verbose`/`--debug`/`--quiet`.
 - `internal/config` package: viper-backed loader for `~/.config/sysaudit/config.yaml`; CLI flags override config values.

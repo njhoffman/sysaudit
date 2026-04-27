@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Initial scaffold landed: cobra+viper CLI, charmbracelet/log logging, gopsutil-based process scanner, anthropic-sdk-go client, lipgloss/glamour reporters. `--procs` runs the full pipeline end-to-end. Other subcommand switches (`--services`, `--users`/`--groups`, `--logs`, `--all`, `--programs`) parse but emit "not yet implemented" warnings and are skipped. The **Specification** section below remains the source of truth for what still needs to be built.
+Implemented scanners: `--procs` (gopsutil) and `--services` (systemctl JSON + show). Stubs that parse but emit "not yet implemented": `--users`/`--groups`, `--logs`, `--programs`, `--all`. The **Specification** section below remains the source of truth for what still needs to be built.
 
 ## Overview
 
@@ -58,7 +58,7 @@ cmd/sysaudit/           # main entrypoint
 cmd/sysaudit/cmd/       # cobra root: flag wiring, scan dispatch, render
 internal/scan/          # shared types: Result, Finding, Severity
 internal/scan/procs/    # gopsutil-backed process scanner (implemented)
-internal/scan/services/ # not yet implemented
+internal/scan/services/ # systemctl JSON + show (implemented)
 internal/scan/users/    # not yet implemented
 internal/scan/logs/     # not yet implemented
 internal/claude/        # anthropic-sdk-go wrapper; token/level/verbosity controls
