@@ -1,5 +1,7 @@
 # sysaudit
 
+[![CI](https://github.com/njhoffman/sysaudit/actions/workflows/ci.yml/badge.svg)](https://github.com/njhoffman/sysaudit/actions/workflows/ci.yml)
+
 A Go CLI for Linux (Ubuntu) that scans the system across processes, services, users/groups, logs, and per-program configuration; bundles the findings into a structured digest; sends that digest to [Claude](https://www.anthropic.com/claude) for analysis; and writes a report.
 
 Output is colorful when written to a terminal and Markdown when written to a file. Run `sysaudit --no-claude` to skip the Claude call entirely (useful for offline use or to avoid token spend during exploration).

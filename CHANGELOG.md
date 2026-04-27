@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- GitHub Actions CI (`.github/workflows/ci.yml`): runs gofmt verification, `go vet`, golangci-lint (pinned to v2.11.4 to match local), `make test` (race + single run), `make build`, and `make manpage` on every push to `main` and on every pull request. Concurrency-grouped so superseded runs are canceled. README has a status badge.
+
+### Added
 - `internal/scan/programs` package with sshd and nginx analyzers. Scans per-program configuration:
   - **sshd**: parses `/etc/ssh/sshd_config` and `/etc/ssh/sshd_config.d/*.conf` (first-occurrence-wins per OpenSSH semantics, Match blocks skipped). Findings: `PermitRootLogin yes` (critical), `PermitRootLogin without-password|prohibit-password` (notice), `PasswordAuthentication yes` (warning), `PermitEmptyPasswords yes` (critical), Protocol 1 (critical), `X11Forwarding yes` (notice), `PermitTunnel` non-no (notice), `LogLevel QUIET|FATAL|ERROR` (notice), `MaxAuthTries > 6` (notice). `sshd -t -f` is run as a syntax check; the unprivileged "no hostkeys available" failure is downgraded to a note instead of a false-positive finding.
   - **nginx**: skipped gracefully when nginx isn't on PATH. Otherwise runs `nginx -t` for syntax check and `nginx -T` for the effective config dump, then applies rules: `server_tokens on` (notice), `autoindex on` (warning), deprecated `ssl_protocols` (TLSv1/TLSv1.1/SSLv2/SSLv3) (error), and weak `ssl_ciphers` (RC4/DES/MD5/NULL) (error).
