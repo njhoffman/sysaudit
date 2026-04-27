@@ -55,7 +55,10 @@ func New() *viper.Viper {
 	v.AutomaticEnv()
 
 	v.SetDefault("journal", DefaultJournalFlags)
-	v.SetDefault("logs", DefaultLogs)
+	// Note: no SetDefault for "logs". cfg.Logs being empty is meaningful —
+	// it means the user did not request a logs scan. The cobra --logs flag
+	// has its own NoOptDefVal so `--logs` (with no value) resolves to
+	// DefaultLogs without bleeding the default into config.
 	v.SetDefault("claude.model", DefaultModel)
 	v.SetDefault("claude.max_tokens", DefaultMaxTokens)
 	v.SetDefault("claude.analysis_level", DefaultAnalysisLevel)

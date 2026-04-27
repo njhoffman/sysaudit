@@ -12,7 +12,7 @@ func TestSelectScans(t *testing.T) {
 		want []string
 	}{
 		{"default", globalFlags{}, []string{"procs", "services"}},
-		{"all", globalFlags{all: true}, []string{"procs", "services", "users", "groups", "logs", "programs"}},
+		{"all", globalFlags{all: true}, []string{"procs", "services", "users", "logs", "programs"}},
 		{"procs only", globalFlags{procs: true}, []string{"procs"}},
 		{"services only", globalFlags{services: true}, []string{"services"}},
 		{"users implies users", globalFlags{users: true}, []string{"users"}},

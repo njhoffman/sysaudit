@@ -147,8 +147,12 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 				return fmt.Errorf("--logs: %w", perr)
 			}
 			logOpts := logs.DefaultOptions()
-			if len(sources) > 0 {
+			switch {
+			case len(sources) > 0:
 				logOpts.Sources = sources
+			case gf.all:
+				// --all without an explicit --logs scans every source.
+				logOpts.Sources = logs.AllSources
 			}
 			if cfg.Journal != "" {
 				logOpts.JournalArgs = cfg.Journal
@@ -227,10 +231,12 @@ func runRoot(cmd *cobra.Command, _ []string) error {
 
 // selectScans returns the ordered list of scan kinds to attempt, derived from
 // the spec: --all wins; otherwise the union of explicit switches; otherwise
-// the default (procs + services).
+// the default (procs + services). Note: "users" covers both --users and
+// --groups (one scanner reads both files), so --all does not list "groups"
+// separately — that would cause a phantom "not yet implemented" warning.
 func selectScans(gf globalFlags) []string {
 	if gf.all {
-		return []string{"procs", "services", "users", "groups", "logs", "programs"}
+		return []string{"procs", "services", "users", "logs", "programs"}
 	}
 	kinds := []string{}
 	if gf.procs {
